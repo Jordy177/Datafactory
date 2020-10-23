@@ -652,7 +652,10 @@
 					"storedProcedureName": "[dbo].[CreateBatch]",
 					"storedProcedureParameters": {
 						"Parallel": {
-							"value": "5",
+							"value": {
+								"value": "@pipeline().parameters.ParallelStreams",
+								"type": "Expression"
+							},
 							"type": "Int32"
 						}
 					}
@@ -663,6 +666,12 @@
 				}
 			}
 		],
+		"parameters": {
+			"ParallelStreams": {
+				"type": "int",
+				"defaultValue": 5
+			}
+		},
 		"annotations": []
 	}
 }

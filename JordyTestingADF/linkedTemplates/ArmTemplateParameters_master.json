@@ -5,10 +5,10 @@
 		"factoryName": {
 			"value": "JordyTestingADF"
 		},
-		"SQL_AdventureWorks_connectionString": {
+		"BlobStorage_connectionString": {
 			"value": ""
 		},
-		"BlobStorage_connectionString": {
+		"SQL_AdventureWorks_connectionString": {
 			"value": ""
 		},
 		"containerUri": {

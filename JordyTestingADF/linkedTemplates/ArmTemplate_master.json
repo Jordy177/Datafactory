@@ -7,13 +7,13 @@
 			"metadata": "Data Factory name",
 			"defaultValue": "JordyTestingADF"
 		},
-		"SQL_AdventureWorks_connectionString": {
-			"type": "secureString",
-			"metadata": "Secure string for 'connectionString' of 'SQL_AdventureWorks'"
-		},
 		"BlobStorage_connectionString": {
 			"type": "secureString",
 			"metadata": "Secure string for 'connectionString' of 'BlobStorage'"
+		},
+		"SQL_AdventureWorks_connectionString": {
+			"type": "secureString",
+			"metadata": "Secure string for 'connectionString' of 'SQL_AdventureWorks'"
 		},
 		"containerUri": {
 			"type": "string",
@@ -42,11 +42,11 @@
 					"factoryName": {
 						"value": "[parameters('factoryName')]"
 					},
-					"SQL_AdventureWorks_connectionString": {
-						"value": "[parameters('SQL_AdventureWorks_connectionString')]"
-					},
 					"BlobStorage_connectionString": {
 						"value": "[parameters('BlobStorage_connectionString')]"
+					},
+					"SQL_AdventureWorks_connectionString": {
+						"value": "[parameters('SQL_AdventureWorks_connectionString')]"
 					}
 				}
 			},

@@ -54,7 +54,7 @@
 						}
 					},
 					{
-						"name": "ForEach1",
+						"name": "ForEachTable",
 						"type": "ForEach",
 						"dependsOn": [
 							{
@@ -132,7 +132,7 @@
 											"type": "DatasetReference",
 											"parameters": {
 												"FileName": {
-													"value": "@concat(item().SchemaName,'_',item().TableName,'csv')",
+													"value": "@concat(item().SchemaName,'_',replace(item().TableName,' ',''),'csv')",
 													"type": "Expression"
 												},
 												"DirectoryName": {

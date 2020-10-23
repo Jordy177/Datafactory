@@ -143,7 +143,7 @@
 			]
 		},
 		{
-			"name": "[concat(parameters('factoryName'), '/pipeline1')]",
+			"name": "[concat(parameters('factoryName'), '/ExportTables')]",
 			"type": "Microsoft.DataFactory/factories/pipelines",
 			"apiVersion": "2018-06-01",
 			"properties": {
@@ -254,7 +254,7 @@
 											"type": "DatasetReference",
 											"parameters": {
 												"FileName": {
-													"value": "@concat(item().SchemaName,'_',replace(item().TableName,' ',''),'csv')",
+													"value": "@concat(item().SchemaName,'_',replace(item().TableName,' ',''),'.csv')",
 													"type": "Expression"
 												},
 												"DirectoryName": {

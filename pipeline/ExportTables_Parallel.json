@@ -562,7 +562,7 @@
 					},
 					"activities": [
 						{
-							"name": "ExportTable_copy1_copy1_copy1_copy1",
+							"name": "ExportTable5",
 							"type": "Copy",
 							"dependsOn": [],
 							"policy": {

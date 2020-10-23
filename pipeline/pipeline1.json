@@ -107,7 +107,7 @@
 									"type": "DatasetReference",
 									"parameters": {
 										"FileName": {
-											"value": "@concat(item().SchemaName,'_',replace(item().TableName,' ',''),'csv')",
+											"value": "@concat(item().SchemaName,'_',replace(item().TableName,' ',''),'.csv')",
 											"type": "Expression"
 										},
 										"DirectoryName": {

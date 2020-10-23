@@ -276,6 +276,625 @@
 				"[concat(variables('factoryId'), '/datasets/SQLTable')]",
 				"[concat(variables('factoryId'), '/datasets/CSVFile')]"
 			]
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/ExportTables_Parallel')]",
+			"type": "Microsoft.DataFactory/factories/pipelines",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"activities": [
+					{
+						"name": "ListTables",
+						"type": "Lookup",
+						"dependsOn": [],
+						"policy": {
+							"timeout": "7.00:00:00",
+							"retry": 0,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"source": {
+								"type": "AzureSqlSource",
+								"sqlReaderQuery": "DECLARE @Parallel INT = 3\n\nDECLARE @i INT = 0\n\n-- Safety measure, no more than 5 parallel channels\nIF @Parallel > 5\n\tBEGIN\n\t\tSET @Parallel = 5\n\tEND\n\nDROP TABLE IF EXISTS #Selection\nDROP TABLE IF EXISTS #EndResults\n\nSELECT ROW_NUMBER() OVER (ORDER BY S.name, T.name, T.create_date) AS Row, S.name AS SchemaName, T.name AS TableName, T.create_date AS CreationDate\nINTO #Selection\nFROM sys.tables AS T \n    INNER JOIN sys.schemas AS S\n    ON S.schema_id = T.schema_id\nWHERE s.name = 'Dimension'\n\n\nDECLARE @SQLSubQuery NVARCHAR(100), @SQLQuery NVARCHAR(1000)\nCREATE TABLE #EndResults (Batch INT, Row INT, SchemaName NVARCHAR(50), TableName NVARCHAR(50), CreationDate DATETIME)\n\n\nWHILE @i < @Parallel\n\tBEGIN\n\t\tIF @i = 0\n\t\t\tBEGIN\n\t\t\t\tSET @SQLQuery = (SELECT CONCAT('INSERT INTO #EndResults SELECT ', @i,' AS Batch, * FROM #Selection WHERE (Row%',@Parallel,')=', @i))\n\t\t\t\tSET @i = @i + 1\n\t\t\tEND\n\t\tELSE\n\t\t\tBEGIN\n\t\t\t\tSET @SQLSubQuery = (SELECT CONCAT('SELECT ', @i,' AS Batch, * FROM #Selection WHERE (Row%',@Parallel,')=', @i))\n\t\t\t\tSET @SQLQuery = (SELECT CONCAT(@SQLQuery,' UNION ALL ', @SQLSubQuery))\n\n\t\t\t\tSET @i = @i + 1\n\t\tEND\n\tEND\n\nEXEC sp_executesql @SQLQuery\n\nSELECT\tBatch,\n\t\tROW_NUMBER() OVER (PARTITION BY Batch ORDER BY SchemaName, TableName, CreationDate) AS Row,\n\t\tSchemaName,\n\t\tTableName,\n\t\tCreationDate\nFROM #EndResults\nWHERE Batch = 0",
+								"queryTimeout": "02:00:00",
+								"partitionOption": "None"
+							},
+							"dataset": {
+								"referenceName": "TableList",
+								"type": "DatasetReference",
+								"parameters": {}
+							},
+							"firstRowOnly": false
+						}
+					},
+					{
+						"name": "ForEachTable",
+						"type": "ForEach",
+						"dependsOn": [
+							{
+								"activity": "ListTables",
+								"dependencyConditions": [
+									"Succeeded"
+								]
+							}
+						],
+						"userProperties": [],
+						"typeProperties": {
+							"items": {
+								"value": "@activity('ListTables').output.value",
+								"type": "Expression"
+							},
+							"activities": [
+								{
+									"name": "ExportTable",
+									"type": "Copy",
+									"dependsOn": [],
+									"policy": {
+										"timeout": "7.00:00:00",
+										"retry": 0,
+										"retryIntervalInSeconds": 30,
+										"secureOutput": false,
+										"secureInput": false
+									},
+									"userProperties": [],
+									"typeProperties": {
+										"source": {
+											"type": "AzureSqlSource",
+											"queryTimeout": "02:00:00",
+											"partitionOption": "None"
+										},
+										"sink": {
+											"type": "DelimitedTextSink",
+											"storeSettings": {
+												"type": "AzureBlobStorageWriteSettings"
+											},
+											"formatSettings": {
+												"type": "DelimitedTextWriteSettings",
+												"quoteAllText": true,
+												"fileExtension": ".txt"
+											}
+										},
+										"enableStaging": false,
+										"translator": {
+											"type": "TabularTranslator",
+											"typeConversion": true,
+											"typeConversionSettings": {
+												"allowDataTruncation": true,
+												"treatBooleanAsNumber": false
+											}
+										}
+									},
+									"inputs": [
+										{
+											"referenceName": "SQLTable",
+											"type": "DatasetReference",
+											"parameters": {
+												"SchemaName": {
+													"value": "@item().SchemaName",
+													"type": "Expression"
+												},
+												"TableName": {
+													"value": "@item().TableName",
+													"type": "Expression"
+												}
+											}
+										}
+									],
+									"outputs": [
+										{
+											"referenceName": "CSVFile",
+											"type": "DatasetReference",
+											"parameters": {
+												"FileName": {
+													"value": "@concat(item().SchemaName,'_',replace(item().TableName,' ',''),'.csv')",
+													"type": "Expression"
+												},
+												"DirectoryName": {
+													"value": "@pipeline().RunId",
+													"type": "Expression"
+												}
+											}
+										}
+									]
+								}
+							]
+						}
+					},
+					{
+						"name": "ListTables2",
+						"description": "DECLARE @Parallel INT = 3\n\nDECLARE @i INT = 0\n\n-- Safety measure, no more than 5 parallel channels\nIF @Parallel > 5\n\tBEGIN\n\t\tSET @Parallel = 5\n\tEND\n\nDROP TABLE IF EXISTS #Selection\nDROP TABLE IF EXISTS #EndResults\n\nSELECT ROW_NUMBER() OVER (ORDER BY S.name, T.name, T.create_date) AS Row, S.name AS SchemaName, T.name AS TableName, T.create_date AS CreationDate\nINTO #Selection\nFROM sys.tables AS T \n    INNER JOIN sys.schemas AS S\n    ON S.schema_id = T.schema_id\nWHERE s.name = 'Dimension'\n\n\nDECLARE @SQLSubQuery NVARCHAR(100), @SQLQuery NVARCHAR(1000)\nCREATE TABLE #EndResults (Batch INT, Row INT, SchemaName NVARCHAR(50), TableName NVARCHAR(50), CreationDate DATETIME)\n\n\nWHILE @i < @Parallel\n\tBEGIN\n\t\tIF @i = 0\n\t\t\tBEGIN\n\t\t\t\tSET @SQLQuery = (SELECT CONCAT('INSERT INTO #EndResults SELECT ', @i,' AS Batch, * FROM #Selection WHERE (Row%',@Parallel,')=', @i))\n\t\t\t\tSET @i = @i + 1\n\t\t\tEND\n\t\tELSE\n\t\t\tBEGIN\n\t\t\t\tSET @SQLSubQuery = (SELECT CONCAT('SELECT ', @i,' AS Batch, * FROM #Selection WHERE (Row%',@Parallel,')=', @i))\n\t\t\t\tSET @SQLQuery = (SELECT CONCAT(@SQLQuery,' UNION ALL ', @SQLSubQuery))\n\n\t\t\t\tSET @i = @i + 1\n\t\tEND\n\tEND\n\nEXEC sp_executesql @SQLQuery\n\nSELECT\tBatch,\n\t\tROW_NUMBER() OVER (PARTITION BY Batch ORDER BY SchemaName, TableName, CreationDate) AS Row,\n\t\tSchemaName,\n\t\tTableName,\n\t\tCreationDate\nFROM #EndResults\nWHERE Batch = 1",
+						"type": "Lookup",
+						"dependsOn": [],
+						"policy": {
+							"timeout": "7.00:00:00",
+							"retry": 0,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"source": {
+								"type": "AzureSqlSource",
+								"sqlReaderQuery": "SELECT S.name AS SchemaName, T.name AS TableName, T.create_date AS CreationDate\nFROM sys.tables AS T \n    INNER JOIN sys.schemas AS S\n    ON S.schema_id = T.schema_id\nWHERE s.name = 'Dimension'",
+								"queryTimeout": "02:00:00",
+								"partitionOption": "None"
+							},
+							"dataset": {
+								"referenceName": "TableList",
+								"type": "DatasetReference",
+								"parameters": {}
+							},
+							"firstRowOnly": false
+						}
+					},
+					{
+						"name": "ForEachTable2",
+						"type": "ForEach",
+						"dependsOn": [
+							{
+								"activity": "ListTables2",
+								"dependencyConditions": [
+									"Succeeded"
+								]
+							}
+						],
+						"userProperties": [],
+						"typeProperties": {
+							"items": {
+								"value": "@activity('ListTables2').output.value",
+								"type": "Expression"
+							},
+							"activities": [
+								{
+									"name": "ExportTable_copy1",
+									"type": "Copy",
+									"dependsOn": [],
+									"policy": {
+										"timeout": "7.00:00:00",
+										"retry": 0,
+										"retryIntervalInSeconds": 30,
+										"secureOutput": false,
+										"secureInput": false
+									},
+									"userProperties": [],
+									"typeProperties": {
+										"source": {
+											"type": "AzureSqlSource",
+											"queryTimeout": "02:00:00",
+											"partitionOption": "None"
+										},
+										"sink": {
+											"type": "DelimitedTextSink",
+											"storeSettings": {
+												"type": "AzureBlobStorageWriteSettings"
+											},
+											"formatSettings": {
+												"type": "DelimitedTextWriteSettings",
+												"quoteAllText": true,
+												"fileExtension": ".txt"
+											}
+										},
+										"enableStaging": false,
+										"translator": {
+											"type": "TabularTranslator",
+											"typeConversion": true,
+											"typeConversionSettings": {
+												"allowDataTruncation": true,
+												"treatBooleanAsNumber": false
+											}
+										}
+									},
+									"inputs": [
+										{
+											"referenceName": "SQLTable",
+											"type": "DatasetReference",
+											"parameters": {
+												"SchemaName": {
+													"value": "@item().SchemaName",
+													"type": "Expression"
+												},
+												"TableName": {
+													"value": "@item().TableName",
+													"type": "Expression"
+												}
+											}
+										}
+									],
+									"outputs": [
+										{
+											"referenceName": "CSVFile",
+											"type": "DatasetReference",
+											"parameters": {
+												"FileName": {
+													"value": "@concat(item().SchemaName,'_',replace(item().TableName,' ',''),'.csv')",
+													"type": "Expression"
+												},
+												"DirectoryName": {
+													"value": "@pipeline().RunId",
+													"type": "Expression"
+												}
+											}
+										}
+									]
+								}
+							]
+						}
+					},
+					{
+						"name": "ListTables3",
+						"description": "DECLARE @Parallel INT = 3\n\nDECLARE @i INT = 0\n\n-- Safety measure, no more than 5 parallel channels\nIF @Parallel > 5\n\tBEGIN\n\t\tSET @Parallel = 5\n\tEND\n\nDROP TABLE IF EXISTS #Selection\nDROP TABLE IF EXISTS #EndResults\n\nSELECT ROW_NUMBER() OVER (ORDER BY S.name, T.name, T.create_date) AS Row, S.name AS SchemaName, T.name AS TableName, T.create_date AS CreationDate\nINTO #Selection\nFROM sys.tables AS T \n    INNER JOIN sys.schemas AS S\n    ON S.schema_id = T.schema_id\nWHERE s.name = 'Dimension'\n\n\nDECLARE @SQLSubQuery NVARCHAR(100), @SQLQuery NVARCHAR(1000)\nCREATE TABLE #EndResults (Batch INT, Row INT, SchemaName NVARCHAR(50), TableName NVARCHAR(50), CreationDate DATETIME)\n\n\nWHILE @i < @Parallel\n\tBEGIN\n\t\tIF @i = 0\n\t\t\tBEGIN\n\t\t\t\tSET @SQLQuery = (SELECT CONCAT('INSERT INTO #EndResults SELECT ', @i,' AS Batch, * FROM #Selection WHERE (Row%',@Parallel,')=', @i))\n\t\t\t\tSET @i = @i + 1\n\t\t\tEND\n\t\tELSE\n\t\t\tBEGIN\n\t\t\t\tSET @SQLSubQuery = (SELECT CONCAT('SELECT ', @i,' AS Batch, * FROM #Selection WHERE (Row%',@Parallel,')=', @i))\n\t\t\t\tSET @SQLQuery = (SELECT CONCAT(@SQLQuery,' UNION ALL ', @SQLSubQuery))\n\n\t\t\t\tSET @i = @i + 1\n\t\tEND\n\tEND\n\nEXEC sp_executesql @SQLQuery\n\nSELECT\tBatch,\n\t\tROW_NUMBER() OVER (PARTITION BY Batch ORDER BY SchemaName, TableName, CreationDate) AS Row,\n\t\tSchemaName,\n\t\tTableName,\n\t\tCreationDate\nFROM #EndResults\nWHERE Batch = 2",
+						"type": "Lookup",
+						"dependsOn": [],
+						"policy": {
+							"timeout": "7.00:00:00",
+							"retry": 0,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"source": {
+								"type": "AzureSqlSource",
+								"sqlReaderQuery": "SELECT S.name AS SchemaName, T.name AS TableName, T.create_date AS CreationDate\nFROM sys.tables AS T \n    INNER JOIN sys.schemas AS S\n    ON S.schema_id = T.schema_id\nWHERE s.name = 'Dimension'",
+								"queryTimeout": "02:00:00",
+								"partitionOption": "None"
+							},
+							"dataset": {
+								"referenceName": "TableList",
+								"type": "DatasetReference",
+								"parameters": {}
+							},
+							"firstRowOnly": false
+						}
+					},
+					{
+						"name": "ForEachTable3",
+						"type": "ForEach",
+						"dependsOn": [
+							{
+								"activity": "ListTables3",
+								"dependencyConditions": [
+									"Succeeded"
+								]
+							}
+						],
+						"userProperties": [],
+						"typeProperties": {
+							"items": {
+								"value": "@activity('ListTables3').output.value",
+								"type": "Expression"
+							},
+							"activities": [
+								{
+									"name": "ExportTable_copy1_copy1",
+									"type": "Copy",
+									"dependsOn": [],
+									"policy": {
+										"timeout": "7.00:00:00",
+										"retry": 0,
+										"retryIntervalInSeconds": 30,
+										"secureOutput": false,
+										"secureInput": false
+									},
+									"userProperties": [],
+									"typeProperties": {
+										"source": {
+											"type": "AzureSqlSource",
+											"queryTimeout": "02:00:00",
+											"partitionOption": "None"
+										},
+										"sink": {
+											"type": "DelimitedTextSink",
+											"storeSettings": {
+												"type": "AzureBlobStorageWriteSettings"
+											},
+											"formatSettings": {
+												"type": "DelimitedTextWriteSettings",
+												"quoteAllText": true,
+												"fileExtension": ".txt"
+											}
+										},
+										"enableStaging": false,
+										"translator": {
+											"type": "TabularTranslator",
+											"typeConversion": true,
+											"typeConversionSettings": {
+												"allowDataTruncation": true,
+												"treatBooleanAsNumber": false
+											}
+										}
+									},
+									"inputs": [
+										{
+											"referenceName": "SQLTable",
+											"type": "DatasetReference",
+											"parameters": {
+												"SchemaName": {
+													"value": "@item().SchemaName",
+													"type": "Expression"
+												},
+												"TableName": {
+													"value": "@item().TableName",
+													"type": "Expression"
+												}
+											}
+										}
+									],
+									"outputs": [
+										{
+											"referenceName": "CSVFile",
+											"type": "DatasetReference",
+											"parameters": {
+												"FileName": {
+													"value": "@concat(item().SchemaName,'_',replace(item().TableName,' ',''),'.csv')",
+													"type": "Expression"
+												},
+												"DirectoryName": {
+													"value": "@pipeline().RunId",
+													"type": "Expression"
+												}
+											}
+										}
+									]
+								}
+							]
+						}
+					},
+					{
+						"name": "ListTables4",
+						"description": "DECLARE @Parallel INT = 3\n\nDECLARE @i INT = 0\n\n-- Safety measure, no more than 5 parallel channels\nIF @Parallel > 5\n\tBEGIN\n\t\tSET @Parallel = 5\n\tEND\n\nDROP TABLE IF EXISTS #Selection\nDROP TABLE IF EXISTS #EndResults\n\nSELECT ROW_NUMBER() OVER (ORDER BY S.name, T.name, T.create_date) AS Row, S.name AS SchemaName, T.name AS TableName, T.create_date AS CreationDate\nINTO #Selection\nFROM sys.tables AS T \n    INNER JOIN sys.schemas AS S\n    ON S.schema_id = T.schema_id\nWHERE s.name = 'Dimension'\n\n\nDECLARE @SQLSubQuery NVARCHAR(100), @SQLQuery NVARCHAR(1000)\nCREATE TABLE #EndResults (Batch INT, Row INT, SchemaName NVARCHAR(50), TableName NVARCHAR(50), CreationDate DATETIME)\n\n\nWHILE @i < @Parallel\n\tBEGIN\n\t\tIF @i = 0\n\t\t\tBEGIN\n\t\t\t\tSET @SQLQuery = (SELECT CONCAT('INSERT INTO #EndResults SELECT ', @i,' AS Batch, * FROM #Selection WHERE (Row%',@Parallel,')=', @i))\n\t\t\t\tSET @i = @i + 1\n\t\t\tEND\n\t\tELSE\n\t\t\tBEGIN\n\t\t\t\tSET @SQLSubQuery = (SELECT CONCAT('SELECT ', @i,' AS Batch, * FROM #Selection WHERE (Row%',@Parallel,')=', @i))\n\t\t\t\tSET @SQLQuery = (SELECT CONCAT(@SQLQuery,' UNION ALL ', @SQLSubQuery))\n\n\t\t\t\tSET @i = @i + 1\n\t\tEND\n\tEND\n\nEXEC sp_executesql @SQLQuery\n\nSELECT\tBatch,\n\t\tROW_NUMBER() OVER (PARTITION BY Batch ORDER BY SchemaName, TableName, CreationDate) AS Row,\n\t\tSchemaName,\n\t\tTableName,\n\t\tCreationDate\nFROM #EndResults\nWHERE Batch = 3",
+						"type": "Lookup",
+						"dependsOn": [],
+						"policy": {
+							"timeout": "7.00:00:00",
+							"retry": 0,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"source": {
+								"type": "AzureSqlSource",
+								"sqlReaderQuery": "SELECT S.name AS SchemaName, T.name AS TableName, T.create_date AS CreationDate\nFROM sys.tables AS T \n    INNER JOIN sys.schemas AS S\n    ON S.schema_id = T.schema_id\nWHERE s.name = 'Dimension'",
+								"queryTimeout": "02:00:00",
+								"partitionOption": "None"
+							},
+							"dataset": {
+								"referenceName": "TableList",
+								"type": "DatasetReference",
+								"parameters": {}
+							},
+							"firstRowOnly": false
+						}
+					},
+					{
+						"name": "ForEachTable4",
+						"type": "ForEach",
+						"dependsOn": [
+							{
+								"activity": "ListTables4",
+								"dependencyConditions": [
+									"Succeeded"
+								]
+							}
+						],
+						"userProperties": [],
+						"typeProperties": {
+							"items": {
+								"value": "@activity('ListTables4').output.value",
+								"type": "Expression"
+							},
+							"activities": [
+								{
+									"name": "ExportTable_copy1_copy1_copy1",
+									"type": "Copy",
+									"dependsOn": [],
+									"policy": {
+										"timeout": "7.00:00:00",
+										"retry": 0,
+										"retryIntervalInSeconds": 30,
+										"secureOutput": false,
+										"secureInput": false
+									},
+									"userProperties": [],
+									"typeProperties": {
+										"source": {
+											"type": "AzureSqlSource",
+											"queryTimeout": "02:00:00",
+											"partitionOption": "None"
+										},
+										"sink": {
+											"type": "DelimitedTextSink",
+											"storeSettings": {
+												"type": "AzureBlobStorageWriteSettings"
+											},
+											"formatSettings": {
+												"type": "DelimitedTextWriteSettings",
+												"quoteAllText": true,
+												"fileExtension": ".txt"
+											}
+										},
+										"enableStaging": false,
+										"translator": {
+											"type": "TabularTranslator",
+											"typeConversion": true,
+											"typeConversionSettings": {
+												"allowDataTruncation": true,
+												"treatBooleanAsNumber": false
+											}
+										}
+									},
+									"inputs": [
+										{
+											"referenceName": "SQLTable",
+											"type": "DatasetReference",
+											"parameters": {
+												"SchemaName": {
+													"value": "@item().SchemaName",
+													"type": "Expression"
+												},
+												"TableName": {
+													"value": "@item().TableName",
+													"type": "Expression"
+												}
+											}
+										}
+									],
+									"outputs": [
+										{
+											"referenceName": "CSVFile",
+											"type": "DatasetReference",
+											"parameters": {
+												"FileName": {
+													"value": "@concat(item().SchemaName,'_',replace(item().TableName,' ',''),'.csv')",
+													"type": "Expression"
+												},
+												"DirectoryName": {
+													"value": "@pipeline().RunId",
+													"type": "Expression"
+												}
+											}
+										}
+									]
+								}
+							]
+						}
+					},
+					{
+						"name": "ListTables5",
+						"description": "DECLARE @Parallel INT = 3\n\nDECLARE @i INT = 0\n\n-- Safety measure, no more than 5 parallel channels\nIF @Parallel > 5\n\tBEGIN\n\t\tSET @Parallel = 5\n\tEND\n\nDROP TABLE IF EXISTS #Selection\nDROP TABLE IF EXISTS #EndResults\n\nSELECT ROW_NUMBER() OVER (ORDER BY S.name, T.name, T.create_date) AS Row, S.name AS SchemaName, T.name AS TableName, T.create_date AS CreationDate\nINTO #Selection\nFROM sys.tables AS T \n    INNER JOIN sys.schemas AS S\n    ON S.schema_id = T.schema_id\nWHERE s.name = 'Dimension'\n\n\nDECLARE @SQLSubQuery NVARCHAR(100), @SQLQuery NVARCHAR(1000)\nCREATE TABLE #EndResults (Batch INT, Row INT, SchemaName NVARCHAR(50), TableName NVARCHAR(50), CreationDate DATETIME)\n\n\nWHILE @i < @Parallel\n\tBEGIN\n\t\tIF @i = 0\n\t\t\tBEGIN\n\t\t\t\tSET @SQLQuery = (SELECT CONCAT('INSERT INTO #EndResults SELECT ', @i,' AS Batch, * FROM #Selection WHERE (Row%',@Parallel,')=', @i))\n\t\t\t\tSET @i = @i + 1\n\t\t\tEND\n\t\tELSE\n\t\t\tBEGIN\n\t\t\t\tSET @SQLSubQuery = (SELECT CONCAT('SELECT ', @i,' AS Batch, * FROM #Selection WHERE (Row%',@Parallel,')=', @i))\n\t\t\t\tSET @SQLQuery = (SELECT CONCAT(@SQLQuery,' UNION ALL ', @SQLSubQuery))\n\n\t\t\t\tSET @i = @i + 1\n\t\tEND\n\tEND\n\nEXEC sp_executesql @SQLQuery\n\nSELECT\tBatch,\n\t\tROW_NUMBER() OVER (PARTITION BY Batch ORDER BY SchemaName, TableName, CreationDate) AS Row,\n\t\tSchemaName,\n\t\tTableName,\n\t\tCreationDate\nFROM #EndResults\nWHERE Batch = 4",
+						"type": "Lookup",
+						"dependsOn": [],
+						"policy": {
+							"timeout": "7.00:00:00",
+							"retry": 0,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"source": {
+								"type": "AzureSqlSource",
+								"sqlReaderQuery": "SELECT S.name AS SchemaName, T.name AS TableName, T.create_date AS CreationDate\nFROM sys.tables AS T \n    INNER JOIN sys.schemas AS S\n    ON S.schema_id = T.schema_id\nWHERE s.name = 'Dimension'",
+								"queryTimeout": "02:00:00",
+								"partitionOption": "None"
+							},
+							"dataset": {
+								"referenceName": "TableList",
+								"type": "DatasetReference",
+								"parameters": {}
+							},
+							"firstRowOnly": false
+						}
+					},
+					{
+						"name": "ForEachTable5",
+						"type": "ForEach",
+						"dependsOn": [
+							{
+								"activity": "ListTables5",
+								"dependencyConditions": [
+									"Succeeded"
+								]
+							}
+						],
+						"userProperties": [],
+						"typeProperties": {
+							"items": {
+								"value": "@activity('ListTables5').output.value",
+								"type": "Expression"
+							},
+							"activities": [
+								{
+									"name": "ExportTable_copy1_copy1_copy1_copy1",
+									"type": "Copy",
+									"dependsOn": [],
+									"policy": {
+										"timeout": "7.00:00:00",
+										"retry": 0,
+										"retryIntervalInSeconds": 30,
+										"secureOutput": false,
+										"secureInput": false
+									},
+									"userProperties": [],
+									"typeProperties": {
+										"source": {
+											"type": "AzureSqlSource",
+											"queryTimeout": "02:00:00",
+											"partitionOption": "None"
+										},
+										"sink": {
+											"type": "DelimitedTextSink",
+											"storeSettings": {
+												"type": "AzureBlobStorageWriteSettings"
+											},
+											"formatSettings": {
+												"type": "DelimitedTextWriteSettings",
+												"quoteAllText": true,
+												"fileExtension": ".txt"
+											}
+										},
+										"enableStaging": false,
+										"translator": {
+											"type": "TabularTranslator",
+											"typeConversion": true,
+											"typeConversionSettings": {
+												"allowDataTruncation": true,
+												"treatBooleanAsNumber": false
+											}
+										}
+									},
+									"inputs": [
+										{
+											"referenceName": "SQLTable",
+											"type": "DatasetReference",
+											"parameters": {
+												"SchemaName": {
+													"value": "@item().SchemaName",
+													"type": "Expression"
+												},
+												"TableName": {
+													"value": "@item().TableName",
+													"type": "Expression"
+												}
+											}
+										}
+									],
+									"outputs": [
+										{
+											"referenceName": "CSVFile",
+											"type": "DatasetReference",
+											"parameters": {
+												"FileName": {
+													"value": "@concat(item().SchemaName,'_',replace(item().TableName,' ',''),'.csv')",
+													"type": "Expression"
+												},
+												"DirectoryName": {
+													"value": "@pipeline().RunId",
+													"type": "Expression"
+												}
+											}
+										}
+									]
+								}
+							]
+						}
+					}
+				],
+				"annotations": []
+			},
+			"dependsOn": [
+				"[concat(variables('factoryId'), '/datasets/TableList')]",
+				"[concat(variables('factoryId'), '/datasets/SQLTable')]",
+				"[concat(variables('factoryId'), '/datasets/CSVFile')]"
+			]
 		}
 	]
 }

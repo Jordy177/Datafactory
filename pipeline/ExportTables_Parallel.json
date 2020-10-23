@@ -123,7 +123,7 @@
 			},
 			{
 				"name": "ListTables2",
-				"description": "DECLARE @Parallel INT = 3\n\nDECLARE @i INT = 0\n\n-- Safety measure, no more than 5 parallel channels\nIF @Parallel > 5\n\tBEGIN\n\t\tSET @Parallel = 5\n\tEND\n\nDROP TABLE IF EXISTS #Selection\nDROP TABLE IF EXISTS #EndResults\n\nSELECT ROW_NUMBER() OVER (ORDER BY S.name, T.name, T.create_date) AS Row, S.name AS SchemaName, T.name AS TableName, T.create_date AS CreationDate\nINTO #Selection\nFROM sys.tables AS T \n    INNER JOIN sys.schemas AS S\n    ON S.schema_id = T.schema_id\nWHERE s.name = 'Dimension'\n\n\nDECLARE @SQLSubQuery NVARCHAR(100), @SQLQuery NVARCHAR(1000)\nCREATE TABLE #EndResults (Batch INT, Row INT, SchemaName NVARCHAR(50), TableName NVARCHAR(50), CreationDate DATETIME)\n\n\nWHILE @i < @Parallel\n\tBEGIN\n\t\tIF @i = 0\n\t\t\tBEGIN\n\t\t\t\tSET @SQLQuery = (SELECT CONCAT('INSERT INTO #EndResults SELECT ', @i,' AS Batch, * FROM #Selection WHERE (Row%',@Parallel,')=', @i))\n\t\t\t\tSET @i = @i + 1\n\t\t\tEND\n\t\tELSE\n\t\t\tBEGIN\n\t\t\t\tSET @SQLSubQuery = (SELECT CONCAT('SELECT ', @i,' AS Batch, * FROM #Selection WHERE (Row%',@Parallel,')=', @i))\n\t\t\t\tSET @SQLQuery = (SELECT CONCAT(@SQLQuery,' UNION ALL ', @SQLSubQuery))\n\n\t\t\t\tSET @i = @i + 1\n\t\tEND\n\tEND\n\nEXEC sp_executesql @SQLQuery\n\nSELECT\tBatch,\n\t\tROW_NUMBER() OVER (PARTITION BY Batch ORDER BY SchemaName, TableName, CreationDate) AS Row,\n\t\tSchemaName,\n\t\tTableName,\n\t\tCreationDate\nFROM #EndResults\nWHERE Batch = 1",
+				"description": "",
 				"type": "Lookup",
 				"dependsOn": [],
 				"policy": {
@@ -137,7 +137,7 @@
 				"typeProperties": {
 					"source": {
 						"type": "AzureSqlSource",
-						"sqlReaderQuery": "SELECT S.name AS SchemaName, T.name AS TableName, T.create_date AS CreationDate\nFROM sys.tables AS T \n    INNER JOIN sys.schemas AS S\n    ON S.schema_id = T.schema_id\nWHERE s.name = 'Dimension'",
+						"sqlReaderQuery": "DECLARE @Parallel INT = 3\n\nDECLARE @i INT = 0\n\n-- Safety measure, no more than 5 parallel channels\nIF @Parallel > 5\n\tBEGIN\n\t\tSET @Parallel = 5\n\tEND\n\nDROP TABLE IF EXISTS #Selection\nDROP TABLE IF EXISTS #EndResults\n\nSELECT ROW_NUMBER() OVER (ORDER BY S.name, T.name, T.create_date) AS Row, S.name AS SchemaName, T.name AS TableName, T.create_date AS CreationDate\nINTO #Selection\nFROM sys.tables AS T \n    INNER JOIN sys.schemas AS S\n    ON S.schema_id = T.schema_id\nWHERE s.name = 'Dimension'\n\n\nDECLARE @SQLSubQuery NVARCHAR(100), @SQLQuery NVARCHAR(1000)\nCREATE TABLE #EndResults (Batch INT, Row INT, SchemaName NVARCHAR(50), TableName NVARCHAR(50), CreationDate DATETIME)\n\n\nWHILE @i < @Parallel\n\tBEGIN\n\t\tIF @i = 0\n\t\t\tBEGIN\n\t\t\t\tSET @SQLQuery = (SELECT CONCAT('INSERT INTO #EndResults SELECT ', @i,' AS Batch, * FROM #Selection WHERE (Row%',@Parallel,')=', @i))\n\t\t\t\tSET @i = @i + 1\n\t\t\tEND\n\t\tELSE\n\t\t\tBEGIN\n\t\t\t\tSET @SQLSubQuery = (SELECT CONCAT('SELECT ', @i,' AS Batch, * FROM #Selection WHERE (Row%',@Parallel,')=', @i))\n\t\t\t\tSET @SQLQuery = (SELECT CONCAT(@SQLQuery,' UNION ALL ', @SQLSubQuery))\n\n\t\t\t\tSET @i = @i + 1\n\t\tEND\n\tEND\n\nEXEC sp_executesql @SQLQuery\n\nSELECT\tBatch,\n\t\tROW_NUMBER() OVER (PARTITION BY Batch ORDER BY SchemaName, TableName, CreationDate) AS Row,\n\t\tSchemaName,\n\t\tTableName,\n\t\tCreationDate\nFROM #EndResults\nWHERE Batch = 1",
 						"queryTimeout": "02:00:00",
 						"partitionOption": "None"
 					},
@@ -243,7 +243,7 @@
 			},
 			{
 				"name": "ListTables3",
-				"description": "DECLARE @Parallel INT = 3\n\nDECLARE @i INT = 0\n\n-- Safety measure, no more than 5 parallel channels\nIF @Parallel > 5\n\tBEGIN\n\t\tSET @Parallel = 5\n\tEND\n\nDROP TABLE IF EXISTS #Selection\nDROP TABLE IF EXISTS #EndResults\n\nSELECT ROW_NUMBER() OVER (ORDER BY S.name, T.name, T.create_date) AS Row, S.name AS SchemaName, T.name AS TableName, T.create_date AS CreationDate\nINTO #Selection\nFROM sys.tables AS T \n    INNER JOIN sys.schemas AS S\n    ON S.schema_id = T.schema_id\nWHERE s.name = 'Dimension'\n\n\nDECLARE @SQLSubQuery NVARCHAR(100), @SQLQuery NVARCHAR(1000)\nCREATE TABLE #EndResults (Batch INT, Row INT, SchemaName NVARCHAR(50), TableName NVARCHAR(50), CreationDate DATETIME)\n\n\nWHILE @i < @Parallel\n\tBEGIN\n\t\tIF @i = 0\n\t\t\tBEGIN\n\t\t\t\tSET @SQLQuery = (SELECT CONCAT('INSERT INTO #EndResults SELECT ', @i,' AS Batch, * FROM #Selection WHERE (Row%',@Parallel,')=', @i))\n\t\t\t\tSET @i = @i + 1\n\t\t\tEND\n\t\tELSE\n\t\t\tBEGIN\n\t\t\t\tSET @SQLSubQuery = (SELECT CONCAT('SELECT ', @i,' AS Batch, * FROM #Selection WHERE (Row%',@Parallel,')=', @i))\n\t\t\t\tSET @SQLQuery = (SELECT CONCAT(@SQLQuery,' UNION ALL ', @SQLSubQuery))\n\n\t\t\t\tSET @i = @i + 1\n\t\tEND\n\tEND\n\nEXEC sp_executesql @SQLQuery\n\nSELECT\tBatch,\n\t\tROW_NUMBER() OVER (PARTITION BY Batch ORDER BY SchemaName, TableName, CreationDate) AS Row,\n\t\tSchemaName,\n\t\tTableName,\n\t\tCreationDate\nFROM #EndResults\nWHERE Batch = 2",
+				"description": "",
 				"type": "Lookup",
 				"dependsOn": [],
 				"policy": {
@@ -257,7 +257,7 @@
 				"typeProperties": {
 					"source": {
 						"type": "AzureSqlSource",
-						"sqlReaderQuery": "SELECT S.name AS SchemaName, T.name AS TableName, T.create_date AS CreationDate\nFROM sys.tables AS T \n    INNER JOIN sys.schemas AS S\n    ON S.schema_id = T.schema_id\nWHERE s.name = 'Dimension'",
+						"sqlReaderQuery": "DECLARE @Parallel INT = 3\n\nDECLARE @i INT = 0\n\n-- Safety measure, no more than 5 parallel channels\nIF @Parallel > 5\n\tBEGIN\n\t\tSET @Parallel = 5\n\tEND\n\nDROP TABLE IF EXISTS #Selection\nDROP TABLE IF EXISTS #EndResults\n\nSELECT ROW_NUMBER() OVER (ORDER BY S.name, T.name, T.create_date) AS Row, S.name AS SchemaName, T.name AS TableName, T.create_date AS CreationDate\nINTO #Selection\nFROM sys.tables AS T \n    INNER JOIN sys.schemas AS S\n    ON S.schema_id = T.schema_id\nWHERE s.name = 'Dimension'\n\n\nDECLARE @SQLSubQuery NVARCHAR(100), @SQLQuery NVARCHAR(1000)\nCREATE TABLE #EndResults (Batch INT, Row INT, SchemaName NVARCHAR(50), TableName NVARCHAR(50), CreationDate DATETIME)\n\n\nWHILE @i < @Parallel\n\tBEGIN\n\t\tIF @i = 0\n\t\t\tBEGIN\n\t\t\t\tSET @SQLQuery = (SELECT CONCAT('INSERT INTO #EndResults SELECT ', @i,' AS Batch, * FROM #Selection WHERE (Row%',@Parallel,')=', @i))\n\t\t\t\tSET @i = @i + 1\n\t\t\tEND\n\t\tELSE\n\t\t\tBEGIN\n\t\t\t\tSET @SQLSubQuery = (SELECT CONCAT('SELECT ', @i,' AS Batch, * FROM #Selection WHERE (Row%',@Parallel,')=', @i))\n\t\t\t\tSET @SQLQuery = (SELECT CONCAT(@SQLQuery,' UNION ALL ', @SQLSubQuery))\n\n\t\t\t\tSET @i = @i + 1\n\t\tEND\n\tEND\n\nEXEC sp_executesql @SQLQuery\n\nSELECT\tBatch,\n\t\tROW_NUMBER() OVER (PARTITION BY Batch ORDER BY SchemaName, TableName, CreationDate) AS Row,\n\t\tSchemaName,\n\t\tTableName,\n\t\tCreationDate\nFROM #EndResults\nWHERE Batch = 2",
 						"queryTimeout": "02:00:00",
 						"partitionOption": "None"
 					},
@@ -363,7 +363,7 @@
 			},
 			{
 				"name": "ListTables4",
-				"description": "DECLARE @Parallel INT = 3\n\nDECLARE @i INT = 0\n\n-- Safety measure, no more than 5 parallel channels\nIF @Parallel > 5\n\tBEGIN\n\t\tSET @Parallel = 5\n\tEND\n\nDROP TABLE IF EXISTS #Selection\nDROP TABLE IF EXISTS #EndResults\n\nSELECT ROW_NUMBER() OVER (ORDER BY S.name, T.name, T.create_date) AS Row, S.name AS SchemaName, T.name AS TableName, T.create_date AS CreationDate\nINTO #Selection\nFROM sys.tables AS T \n    INNER JOIN sys.schemas AS S\n    ON S.schema_id = T.schema_id\nWHERE s.name = 'Dimension'\n\n\nDECLARE @SQLSubQuery NVARCHAR(100), @SQLQuery NVARCHAR(1000)\nCREATE TABLE #EndResults (Batch INT, Row INT, SchemaName NVARCHAR(50), TableName NVARCHAR(50), CreationDate DATETIME)\n\n\nWHILE @i < @Parallel\n\tBEGIN\n\t\tIF @i = 0\n\t\t\tBEGIN\n\t\t\t\tSET @SQLQuery = (SELECT CONCAT('INSERT INTO #EndResults SELECT ', @i,' AS Batch, * FROM #Selection WHERE (Row%',@Parallel,')=', @i))\n\t\t\t\tSET @i = @i + 1\n\t\t\tEND\n\t\tELSE\n\t\t\tBEGIN\n\t\t\t\tSET @SQLSubQuery = (SELECT CONCAT('SELECT ', @i,' AS Batch, * FROM #Selection WHERE (Row%',@Parallel,')=', @i))\n\t\t\t\tSET @SQLQuery = (SELECT CONCAT(@SQLQuery,' UNION ALL ', @SQLSubQuery))\n\n\t\t\t\tSET @i = @i + 1\n\t\tEND\n\tEND\n\nEXEC sp_executesql @SQLQuery\n\nSELECT\tBatch,\n\t\tROW_NUMBER() OVER (PARTITION BY Batch ORDER BY SchemaName, TableName, CreationDate) AS Row,\n\t\tSchemaName,\n\t\tTableName,\n\t\tCreationDate\nFROM #EndResults\nWHERE Batch = 3",
+				"description": "",
 				"type": "Lookup",
 				"dependsOn": [],
 				"policy": {
@@ -377,7 +377,7 @@
 				"typeProperties": {
 					"source": {
 						"type": "AzureSqlSource",
-						"sqlReaderQuery": "SELECT S.name AS SchemaName, T.name AS TableName, T.create_date AS CreationDate\nFROM sys.tables AS T \n    INNER JOIN sys.schemas AS S\n    ON S.schema_id = T.schema_id\nWHERE s.name = 'Dimension'",
+						"sqlReaderQuery": "DECLARE @Parallel INT = 3\n\nDECLARE @i INT = 0\n\n-- Safety measure, no more than 5 parallel channels\nIF @Parallel > 5\n\tBEGIN\n\t\tSET @Parallel = 5\n\tEND\n\nDROP TABLE IF EXISTS #Selection\nDROP TABLE IF EXISTS #EndResults\n\nSELECT ROW_NUMBER() OVER (ORDER BY S.name, T.name, T.create_date) AS Row, S.name AS SchemaName, T.name AS TableName, T.create_date AS CreationDate\nINTO #Selection\nFROM sys.tables AS T \n    INNER JOIN sys.schemas AS S\n    ON S.schema_id = T.schema_id\nWHERE s.name = 'Dimension'\n\n\nDECLARE @SQLSubQuery NVARCHAR(100), @SQLQuery NVARCHAR(1000)\nCREATE TABLE #EndResults (Batch INT, Row INT, SchemaName NVARCHAR(50), TableName NVARCHAR(50), CreationDate DATETIME)\n\n\nWHILE @i < @Parallel\n\tBEGIN\n\t\tIF @i = 0\n\t\t\tBEGIN\n\t\t\t\tSET @SQLQuery = (SELECT CONCAT('INSERT INTO #EndResults SELECT ', @i,' AS Batch, * FROM #Selection WHERE (Row%',@Parallel,')=', @i))\n\t\t\t\tSET @i = @i + 1\n\t\t\tEND\n\t\tELSE\n\t\t\tBEGIN\n\t\t\t\tSET @SQLSubQuery = (SELECT CONCAT('SELECT ', @i,' AS Batch, * FROM #Selection WHERE (Row%',@Parallel,')=', @i))\n\t\t\t\tSET @SQLQuery = (SELECT CONCAT(@SQLQuery,' UNION ALL ', @SQLSubQuery))\n\n\t\t\t\tSET @i = @i + 1\n\t\tEND\n\tEND\n\nEXEC sp_executesql @SQLQuery\n\nSELECT\tBatch,\n\t\tROW_NUMBER() OVER (PARTITION BY Batch ORDER BY SchemaName, TableName, CreationDate) AS Row,\n\t\tSchemaName,\n\t\tTableName,\n\t\tCreationDate\nFROM #EndResults\nWHERE Batch = 3",
 						"queryTimeout": "02:00:00",
 						"partitionOption": "None"
 					},
@@ -483,7 +483,7 @@
 			},
 			{
 				"name": "ListTables5",
-				"description": "DECLARE @Parallel INT = 3\n\nDECLARE @i INT = 0\n\n-- Safety measure, no more than 5 parallel channels\nIF @Parallel > 5\n\tBEGIN\n\t\tSET @Parallel = 5\n\tEND\n\nDROP TABLE IF EXISTS #Selection\nDROP TABLE IF EXISTS #EndResults\n\nSELECT ROW_NUMBER() OVER (ORDER BY S.name, T.name, T.create_date) AS Row, S.name AS SchemaName, T.name AS TableName, T.create_date AS CreationDate\nINTO #Selection\nFROM sys.tables AS T \n    INNER JOIN sys.schemas AS S\n    ON S.schema_id = T.schema_id\nWHERE s.name = 'Dimension'\n\n\nDECLARE @SQLSubQuery NVARCHAR(100), @SQLQuery NVARCHAR(1000)\nCREATE TABLE #EndResults (Batch INT, Row INT, SchemaName NVARCHAR(50), TableName NVARCHAR(50), CreationDate DATETIME)\n\n\nWHILE @i < @Parallel\n\tBEGIN\n\t\tIF @i = 0\n\t\t\tBEGIN\n\t\t\t\tSET @SQLQuery = (SELECT CONCAT('INSERT INTO #EndResults SELECT ', @i,' AS Batch, * FROM #Selection WHERE (Row%',@Parallel,')=', @i))\n\t\t\t\tSET @i = @i + 1\n\t\t\tEND\n\t\tELSE\n\t\t\tBEGIN\n\t\t\t\tSET @SQLSubQuery = (SELECT CONCAT('SELECT ', @i,' AS Batch, * FROM #Selection WHERE (Row%',@Parallel,')=', @i))\n\t\t\t\tSET @SQLQuery = (SELECT CONCAT(@SQLQuery,' UNION ALL ', @SQLSubQuery))\n\n\t\t\t\tSET @i = @i + 1\n\t\tEND\n\tEND\n\nEXEC sp_executesql @SQLQuery\n\nSELECT\tBatch,\n\t\tROW_NUMBER() OVER (PARTITION BY Batch ORDER BY SchemaName, TableName, CreationDate) AS Row,\n\t\tSchemaName,\n\t\tTableName,\n\t\tCreationDate\nFROM #EndResults\nWHERE Batch = 4",
+				"description": "",
 				"type": "Lookup",
 				"dependsOn": [],
 				"policy": {
@@ -497,7 +497,7 @@
 				"typeProperties": {
 					"source": {
 						"type": "AzureSqlSource",
-						"sqlReaderQuery": "SELECT S.name AS SchemaName, T.name AS TableName, T.create_date AS CreationDate\nFROM sys.tables AS T \n    INNER JOIN sys.schemas AS S\n    ON S.schema_id = T.schema_id\nWHERE s.name = 'Dimension'",
+						"sqlReaderQuery": "DECLARE @Parallel INT = 3\n\nDECLARE @i INT = 0\n\n-- Safety measure, no more than 5 parallel channels\nIF @Parallel > 5\n\tBEGIN\n\t\tSET @Parallel = 5\n\tEND\n\nDROP TABLE IF EXISTS #Selection\nDROP TABLE IF EXISTS #EndResults\n\nSELECT ROW_NUMBER() OVER (ORDER BY S.name, T.name, T.create_date) AS Row, S.name AS SchemaName, T.name AS TableName, T.create_date AS CreationDate\nINTO #Selection\nFROM sys.tables AS T \n    INNER JOIN sys.schemas AS S\n    ON S.schema_id = T.schema_id\nWHERE s.name = 'Dimension'\n\n\nDECLARE @SQLSubQuery NVARCHAR(100), @SQLQuery NVARCHAR(1000)\nCREATE TABLE #EndResults (Batch INT, Row INT, SchemaName NVARCHAR(50), TableName NVARCHAR(50), CreationDate DATETIME)\n\n\nWHILE @i < @Parallel\n\tBEGIN\n\t\tIF @i = 0\n\t\t\tBEGIN\n\t\t\t\tSET @SQLQuery = (SELECT CONCAT('INSERT INTO #EndResults SELECT ', @i,' AS Batch, * FROM #Selection WHERE (Row%',@Parallel,')=', @i))\n\t\t\t\tSET @i = @i + 1\n\t\t\tEND\n\t\tELSE\n\t\t\tBEGIN\n\t\t\t\tSET @SQLSubQuery = (SELECT CONCAT('SELECT ', @i,' AS Batch, * FROM #Selection WHERE (Row%',@Parallel,')=', @i))\n\t\t\t\tSET @SQLQuery = (SELECT CONCAT(@SQLQuery,' UNION ALL ', @SQLSubQuery))\n\n\t\t\t\tSET @i = @i + 1\n\t\tEND\n\tEND\n\nEXEC sp_executesql @SQLQuery\n\nSELECT\tBatch,\n\t\tROW_NUMBER() OVER (PARTITION BY Batch ORDER BY SchemaName, TableName, CreationDate) AS Row,\n\t\tSchemaName,\n\t\tTableName,\n\t\tCreationDate\nFROM #EndResults\nWHERE Batch = 4",
 						"queryTimeout": "02:00:00",
 						"partitionOption": "None"
 					},

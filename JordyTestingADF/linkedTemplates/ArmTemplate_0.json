@@ -277,7 +277,7 @@
 									"type": "GetMetadata",
 									"dependsOn": [
 										{
-											"activity": "Filter",
+											"activity": "ExportTable",
 											"dependencyConditions": [
 												"Succeeded"
 											]
@@ -309,29 +309,6 @@
 										"fieldList": [
 											"columnCount"
 										]
-									}
-								},
-								{
-									"name": "Filter",
-									"type": "Filter",
-									"dependsOn": [
-										{
-											"activity": "ExportTable",
-											"dependencyConditions": [
-												"Succeeded"
-											]
-										}
-									],
-									"userProperties": [],
-									"typeProperties": {
-										"items": {
-											"value": "@item().TableName",
-											"type": "Expression"
-										},
-										"condition": {
-											"value": "@variables('Dimension')",
-											"type": "Expression"
-										}
 									}
 								},
 								{

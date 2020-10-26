@@ -5,14 +5,7 @@
 			{
 				"name": "ListTables",
 				"type": "Lookup",
-				"dependsOn": [
-					{
-						"activity": "Set dimension",
-						"dependencyConditions": [
-							"Succeeded"
-						]
-					}
-				],
+				"dependsOn": [],
 				"policy": {
 					"timeout": "7.00:00:00",
 					"retry": 0,
@@ -56,7 +49,14 @@
 						{
 							"name": "ExportTable",
 							"type": "Copy",
-							"dependsOn": [],
+							"dependsOn": [
+								{
+									"activity": "Set dimension",
+									"dependencyConditions": [
+										"Succeeded"
+									]
+								}
+							],
 							"policy": {
 								"timeout": "7.00:00:00",
 								"retry": 0,
@@ -186,15 +186,19 @@
 									"type": "Expression"
 								}
 							}
+						},
+						{
+							"name": "Set dimension",
+							"type": "SetVariable",
+							"dependsOn": [],
+							"userProperties": [],
+							"typeProperties": {
+								"variableName": "Dimension",
+								"value": "City"
+							}
 						}
 					]
 				}
-			},
-			{
-				"name": "Set dimension",
-				"type": "SetVariable",
-				"dependsOn": [],
-				"userProperties": []
 			}
 		],
 		"variables": {

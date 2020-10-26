@@ -196,7 +196,14 @@
 								{
 									"name": "ExportTable",
 									"type": "Copy",
-									"dependsOn": [],
+									"dependsOn": [
+										{
+											"activity": "Set dimension",
+											"dependencyConditions": [
+												"Succeeded"
+											]
+										}
+									],
 									"policy": {
 										"timeout": "7.00:00:00",
 										"retry": 0,
@@ -270,7 +277,7 @@
 									"type": "GetMetadata",
 									"dependsOn": [
 										{
-											"activity": "Filter1",
+											"activity": "Filter",
 											"dependencyConditions": [
 												"Succeeded"
 											]
@@ -305,7 +312,7 @@
 									}
 								},
 								{
-									"name": "Filter1",
+									"name": "Filter",
 									"type": "Filter",
 									"dependsOn": [
 										{
@@ -322,15 +329,31 @@
 											"type": "Expression"
 										},
 										"condition": {
-											"value": "City",
+											"value": "@variables('Dimension')",
 											"type": "Expression"
 										}
+									}
+								},
+								{
+									"name": "Set dimension",
+									"type": "SetVariable",
+									"dependsOn": [],
+									"userProperties": [],
+									"typeProperties": {
+										"variableName": "Dimension",
+										"value": "City"
 									}
 								}
 							]
 						}
 					}
 				],
+				"variables": {
+					"Dimension": {
+						"type": "String",
+						"defaultValue": "City"
+					}
+				},
 				"annotations": []
 			},
 			"dependsOn": [

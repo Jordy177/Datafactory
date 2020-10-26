@@ -51,7 +51,7 @@
 							"type": "Copy",
 							"dependsOn": [
 								{
-									"activity": "Set dimension",
+									"activity": "Set Dimension",
 									"dependencyConditions": [
 										"Succeeded"
 									]
@@ -188,13 +188,15 @@
 							}
 						},
 						{
-							"name": "Set dimension",
+							"name": "Set Dimension",
 							"type": "SetVariable",
 							"dependsOn": [],
 							"userProperties": [],
 							"typeProperties": {
 								"variableName": "Dimension",
-								"value": "City"
+								"value": [
+									"['City']"
+								]
 							}
 						}
 					]
@@ -203,8 +205,7 @@
 		],
 		"variables": {
 			"Dimension": {
-				"type": "String",
-				"defaultValue": "City"
+				"type": "Array"
 			}
 		},
 		"annotations": []

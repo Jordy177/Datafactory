@@ -28,7 +28,7 @@
 				},
 				"container": "exported-data"
 			},
-			"columnDelimiter": "|^|",
+			"columnDelimiter": ",",
 			"escapeChar": "\\",
 			"firstRowAsHeader": true,
 			"quoteChar": "\""

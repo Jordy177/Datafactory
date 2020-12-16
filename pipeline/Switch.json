@@ -1,0 +1,41 @@
+{
+	"name": "Switch",
+	"properties": {
+		"activities": [
+			{
+				"name": "Switch1",
+				"type": "Switch",
+				"dependsOn": [],
+				"userProperties": [],
+				"typeProperties": {
+					"on": {
+						"value": "@pipeline().parameters.Pipeline",
+						"type": "Expression"
+					},
+					"cases": [
+						{
+							"value": "DEV",
+							"activities": [
+								{
+									"name": "Execute Pipeline1",
+									"type": "ExecutePipeline",
+									"dependsOn": [],
+									"userProperties": [],
+									"typeProperties": {
+										"waitOnCompletion": true
+									}
+								}
+							]
+						}
+					]
+				}
+			}
+		],
+		"parameters": {
+			"Pipeline": {
+				"type": "string"
+			}
+		},
+		"annotations": []
+	}
+}
